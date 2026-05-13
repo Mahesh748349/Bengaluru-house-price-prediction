@@ -46,3 +46,4 @@ Thumbs.db
 *.pkl
 *.model
 .streamlit/
+reports/.matplotlib/

@@ -31,6 +31,22 @@ def prepare_input_dataframe(input_df: pd.DataFrame, train_df: pd.DataFrame) -> p
     return input_df
 
 
+def validate_model_inputs(model, input_df: pd.DataFrame) -> None:
+    preprocessor = model.named_steps.get("preprocess") if hasattr(model, "named_steps") else None
+    if preprocessor is None or not hasattr(preprocessor, "feature_names_in_"):
+        return
+
+    expected_columns = set(preprocessor.feature_names_in_)
+    available_columns = set(input_df.columns)
+    missing_columns = expected_columns - available_columns
+    if missing_columns:
+        missing = ", ".join(sorted(missing_columns))
+        raise ValueError(
+            "The saved model expects columns that the app cannot create: "
+            f"{missing}. Run `python -m src.run_pipeline` to rebuild the app model."
+        )
+
+
 def get_error_margin(predicted_price: float) -> float:
     if predicted_price < 5e6:
         return 0.44
@@ -98,7 +114,12 @@ def main():
             ]
         )
         input_df = prepare_input_dataframe(input_df, train_df)
-        prediction = predict_prices(model, input_df)
+        try:
+            validate_model_inputs(model, input_df)
+            prediction = predict_prices(model, input_df)
+        except ValueError as exc:
+            st.error(str(exc))
+            st.stop()
 
         if len(prediction) == 1:
             predicted_price = prediction[0]

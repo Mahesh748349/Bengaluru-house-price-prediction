@@ -82,6 +82,13 @@ def main():
         submission.to_csv(SUBMISSION_PATH, index=False)
         print(f"Saved submission to {SUBMISSION_PATH}")
 
+    try:
+        from src.generate_datathon_report import main as generate_datathon_report
+
+        generate_datathon_report()
+    except Exception as exc:
+        print(f"Datathon report generation skipped: {exc}")
+
 
 if __name__ == "__main__":
     main()

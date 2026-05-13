@@ -40,7 +40,7 @@ pip install -r requirements.txt
 python -m src.run_pipeline
 ```
 
-The pipeline reads `data/train.csv`, cleans the data, creates engineered features, compares candidate models with 5-fold cross-validation, saves the best model to `models/best_model.joblib`, and writes run outputs to `outputs/`.
+The pipeline reads `data/train.csv`, cleans the data, creates engineered features, compares candidate models with 5-fold cross-validation, saves the best model to `models/best_model.joblib`, writes run outputs to `outputs/`, and generates datathon-ready plots/reports in `reports/`.
 
 Current best model from the saved run:
 
@@ -67,6 +67,16 @@ If the model file is missing, run the training pipeline first.
 ## Notebook
 
 Open `main.ipynb` for exploratory data analysis, feature inspection, and modeling experiments.
+
+## DataVerse Reports
+
+The training pipeline generates the datathon EDA visuals automatically. To regenerate only the report and plots:
+
+```bash
+python -m src.generate_datathon_report
+```
+
+This writes presentation-ready plots to `reports/figures/` and markdown reports to `reports/`.
 
 ## Accuracy Notes
 
