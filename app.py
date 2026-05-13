@@ -10,15 +10,14 @@ from src.preprocessing import basic_clean
 MODEL_PATH = MODELS_DIR / "best_model.joblib"
 
 
-@st.cache_data(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def load_model():
     return joblib.load(MODEL_PATH)
 
 
 @st.cache_data(show_spinner=False)
 def load_train_data():
-    df = pd.read_csv(TRAIN_PATH)
-    return df
+    return pd.read_csv(TRAIN_PATH)
 
 
 def prepare_input_dataframe(input_df: pd.DataFrame, train_df: pd.DataFrame) -> pd.DataFrame:
@@ -32,10 +31,30 @@ def prepare_input_dataframe(input_df: pd.DataFrame, train_df: pd.DataFrame) -> p
     return input_df
 
 
+def get_error_margin(predicted_price: float) -> float:
+    if predicted_price < 5e6:
+        return 0.44
+    if predicted_price < 10e6:
+        return 0.30
+    if predicted_price < 15e6:
+        return 0.20
+    if predicted_price < 25e6:
+        return 0.19
+    return 0.28
+
+
 def main():
     st.set_page_config(page_title="Bangalore House Price Predictor", layout="centered")
-    st.title("🏠 Bangalore House Price Predictor")
+    st.title("Bangalore House Price Predictor")
     st.write("Enter a property profile and get a predicted sale price based on the project model.")
+
+    if not TRAIN_PATH.exists():
+        st.error("Training data not found. Put the training file at `data/train.csv`.")
+        st.stop()
+
+    if not MODEL_PATH.exists():
+        st.error("Model file not found. Run `python -m src.run_pipeline` first.")
+        st.stop()
 
     train_df = load_train_data()
     model = load_model()
@@ -48,12 +67,16 @@ def main():
         balcony = st.number_input("Balcony count", min_value=0, max_value=5, value=1, step=1)
         parking = st.number_input("Parking spaces", min_value=0, max_value=5, value=1, step=1)
 
-        furnishing_options = ["Unfurnished", "Semi-Furnished", "Fully-Furnished"]
-        furnishing = st.selectbox("Furnishing", furnishing_options, index=0)
-
-        property_type_options = ["Apartment", "Independent House", "Villa", "Other"]
-        property_type = st.selectbox("Property Type", property_type_options, index=0)
-
+        furnishing = st.selectbox(
+            "Furnishing",
+            ["Unfurnished", "Semi-Furnished", "Fully-Furnished"],
+            index=0,
+        )
+        property_type = st.selectbox(
+            "Property Type",
+            ["Apartment", "Independent House", "Villa", "Other"],
+            index=0,
+        )
         age = st.number_input("Age of property (years)", min_value=0, max_value=100, value=5, step=1)
 
         submit_button = st.form_submit_button("Predict Price")
@@ -79,56 +102,36 @@ def main():
 
         if len(prediction) == 1:
             predicted_price = prediction[0]
-            
-            # Estimate confidence range based on price tier
-            if predicted_price < 5e6:
-                margin_pct = 0.44  # 44% error for < 50L
-            elif predicted_price < 10e6:
-                margin_pct = 0.30  # 30% error for 50L-1Cr
-            elif predicted_price < 15e6:
-                margin_pct = 0.20  # 20% error for 1Cr-1.5Cr
-            elif predicted_price < 25e6:
-                margin_pct = 0.19  # 19% error for 1.5Cr-2.5Cr
-            else:
-                margin_pct = 0.28  # 28% error for > 2.5Cr
-            
+            margin_pct = get_error_margin(predicted_price)
             lower_bound = predicted_price * (1 - margin_pct)
             upper_bound = predicted_price * (1 + margin_pct)
-            
-            price_text = f"₹{predicted_price:,.0f}"
+
             st.success("Prediction ready")
-            st.metric("Predicted sale price", price_text)
-            
+            st.metric("Predicted sale price", f"INR {predicted_price:,.0f}")
             st.info(
-                f"📊 **Prediction Range:** ₹{lower_bound:,.0f} to ₹{upper_bound:,.0f}\n\n"
-                f"*Based on historical accuracy (~{margin_pct*100:.0f}% average error on similar properties)*"
+                f"**Prediction range:** INR {lower_bound:,.0f} to INR {upper_bound:,.0f}\n\n"
+                f"*Based on historical accuracy (~{margin_pct * 100:.0f}% average error on similar properties).*"
             )
         else:
             st.error("Prediction failed. Please try again with valid inputs.")
 
     st.markdown("---")
-    st.markdown("### 📋 How Accurate Is This?")
+    st.markdown("### How Accurate Is This?")
     st.markdown(
         """
-- **Model accuracy:** ~20-30% average error on mid-range properties (₹1-2.5Cr)
+- **Model accuracy:** ~20-30% average error on mid-range properties (INR 1-2.5Cr)
 - **Lower on extremes:** Budget homes (< 50L) and ultra-premium (> 2.5Cr) have ~30-45% error
-- **Why?** Limited training examples for rare price tiers + Bengaluru's complex location premiums
-- **Use as:** Market reference point + negotiation baseline, not absolute truth
-- **Best for:** Screening properties in ₹1-2.5Cr range
+- **Why?** Limited training examples for rare price tiers plus Bengaluru's complex location premiums
+- **Use as:** Market reference point and negotiation baseline, not an absolute valuation
+- **Best for:** Screening properties in the INR 1-2.5Cr range
         """
     )
-    
+
     st.markdown("---")
     st.markdown("### Notes")
-    st.markdown(
-        "- The app uses the trained model file `models/best_model.joblib` and the dataset in `data/train.csv`."
-    )
-    st.markdown(
-        "- If you change `data/train.csv`, re-run `python -m src.run_pipeline` before using the app again."
-    )
-    st.markdown(
-        "- This UI is built with Streamlit for a quick website-style prediction interface."
-    )
+    st.markdown("- The app uses `models/best_model.joblib` and `data/train.csv`.")
+    st.markdown("- If you change `data/train.csv`, re-run `python -m src.run_pipeline`.")
+    st.markdown("- This UI is built with Streamlit for a quick prediction interface.")
 
 
 if __name__ == "__main__":
