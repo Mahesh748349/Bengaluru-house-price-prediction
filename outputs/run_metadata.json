@@ -1,0 +1,6 @@
+{
+  "target_col": "price",
+  "id_col": null,
+  "best_model": "ridge",
+  "best_cv_rmsle": 0.27880526908056324
+}

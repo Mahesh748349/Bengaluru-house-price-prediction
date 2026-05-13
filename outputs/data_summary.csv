@@ -1,0 +1,11 @@
+,dtype,missing,missing_pct,unique
+price,int64,0,0.0,764
+area,int64,0,0.0,755
+location,str,0,0.0,20
+age,int64,0,0.0,15
+bath,int64,0,0.0,6
+bhk,int64,0,0.0,5
+balcony,int64,0,0.0,3
+parking,int64,0,0.0,3
+furnishing,str,0,0.0,3
+property_type,str,0,0.0,3
